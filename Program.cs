@@ -24,11 +24,26 @@ public class Singleton<T> where T: class, new()
 
 public class SingletonObject : Singleton<SingletonObject>
 {
+    private GCHandle? objectID = null;
+
     public GCHandle ObjectID
     {
         get
         {
-            return GCHandle.Alloc(Instance, GCHandleType.Pinned);
+            if (objectID == null)
+            {
+                objectID = GCHandle.Alloc(Instance, GCHandleType.Pinned);
+            }
+            return objectID.Value;
+        }
+    }
+
+    public void Free()
+    {
+        if (objectID.HasValue && objectID.Value.IsAllocated)
+        {
+            objectID.Value.Free();
+            objectID = null;
         }
     }
 }
@@ -187,21 +202,24 @@ public class StringHelper
 
 class Program
 {
-    public SingletonObject singletonObject1 = new();
-    public SingletonObject singletonObject2 = new();
+    SingletonObject singletonObject1 = SingletonObject.Instance;
+    SingletonObject singletonObject2 = SingletonObject.Instance;
     static void Main(string[] args)
     {
         Program program = new();
         
         IntPtr addres1 = program.singletonObject1.ObjectID.AddrOfPinnedObject();
         IntPtr addres2 = program.singletonObject2.ObjectID.AddrOfPinnedObject();
-        //Console.WriteLine($"{addres1} == {addres2}: {addres1 == addres2}");
+        Console.WriteLine($"{addres1} == {addres2}: {addres1 == addres2}");
+
+        program.singletonObject1.Free();
+        program.singletonObject2.Free();
 
         EventBroker eventBroker = new();
         Publisher publisher = new(eventBroker);
         Subscriber subscriber = new(eventBroker);
 
-        publisher.PublishEvent();
+        //publisher.PublishEvent();
 
 
         //PaymentSystemAdapter.Perform(1000, "Rub");
